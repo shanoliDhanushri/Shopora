@@ -1,14 +1,15 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-require('dotenv').config({ path: '../.env' });
 
-const User = require('../models/User');
+const mongoose = require('mongoose');
+const path = require('path');
+
+require('dotenv').config({
+  path: path.resolve(__dirname, '../.env'),
+});
+
 const Category = require('../models/Category');
 const Product = require('../models/Product');
-const Coupon = require('../models/Coupon');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ecommerce_db';
-
+const MONGO_URI = process.env.MONGO_URI;
 // Realistic Sri Lankan product image URLs from Unsplash (free to use)
 const categoryImages = {
   electronics: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&q=80',
@@ -385,114 +386,84 @@ const generateProducts = (categoryIds) => {
   ];
 };
 
-const coupons = [
-  {
-    code: 'WELCOME10',
-    type: 'percentage',
-    value: 10,
-    minOrderAmount: 1000,
-    maxDiscount: 2000,
-    usageLimit: 100,
-    validFrom: new Date(),
-    validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-    isActive: true,
-  },
-  {
-    code: 'SAVE500',
-    type: 'fixed',
-    value: 500,
-    minOrderAmount: 5000,
-    usageLimit: 50,
-    validFrom: new Date(),
-    validUntil: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
-    isActive: true,
-  },
-  {
-    code: 'NEWUSER20',
-    type: 'percentage',
-    value: 20,
-    minOrderAmount: 2000,
-    maxDiscount: 3000,
-    usageLimit: 200,
-    validFrom: new Date(),
-    validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-    isActive: true,
-  },
-];
-
 const seedDatabase = async () => {
   try {
+    // Check MongoDB connection string
+    if (!MONGO_URI) {
+      throw new Error('MONGO_URI is missing in backend/.env');
+    }
+
     console.log('🌱 Connecting to MongoDB...');
+
     await mongoose.connect(MONGO_URI);
+    await Category.init();
+    await Product.init();
+
     console.log('✅ Connected to MongoDB');
 
-    // Clear existing data
-    console.log('🗑️  Clearing existing data...');
-    await User.deleteMany({});
-    await Category.deleteMany({});
-    await Product.deleteMany({});
-    await Coupon.deleteMany({});
-
-    // Create admin user
-    console.log('👤 Creating admin user...');
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@ecommerce.lk';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
-    const adminName = process.env.ADMIN_NAME || 'System Administrator';
-
-    await User.create({
-      name: adminName,
-      email: adminEmail,
-      password: adminPassword,
-      role: 'admin',
-      phone: '+94112345678',
-      isActive: true,
-    });
-    console.log(`✅ Admin created: ${adminEmail} / ${adminPassword}`);
-
-    // Create a test customer
-    await User.create({
-      name: 'Priya Perera',
-      email: 'customer@example.com',
-      password: 'Customer@123',
-      role: 'customer',
-      phone: '+94771234567',
-      isActive: true,
-    });
-    console.log('✅ Test customer created: customer@example.com / Customer@123');
-
-    // Create categories
+    // Create categories without deleting existing data
     console.log('📂 Creating categories...');
-    const createdCategories = await Category.insertMany(categories);
-    console.log(`✅ Created ${createdCategories.length} categories`);
 
-    const categoryIds = createdCategories.map((c) => c._id);
+    const categoryIds = [];
 
-    // Create products
+    for (const category of categories) {
+      let existingCategory = await Category.findOne({
+        name: category.name,
+      });
+
+      if (!existingCategory) {
+        existingCategory = await Category.create(category);
+
+        console.log('✅ Category added:', category.name);
+      } else {
+        console.log('⏭️ Category already exists:', category.name);
+      }
+
+      categoryIds.push(existingCategory._id);
+    }
+
+    // Generate sample products
     console.log('📦 Creating products...');
+
     const products = generateProducts(categoryIds);
-    const createdProducts = await Product.create(products);
-    console.log(`✅ Created ${createdProducts.length} products`);
 
-    // Create coupons
-    console.log('🎟️  Creating coupons...');
-    await Coupon.insertMany(coupons);
-    console.log(`✅ Created ${coupons.length} coupons`);
+    let addedProducts = 0;
+    let skippedProducts = 0;
 
+    for (const product of products) {
+      const existingProduct = await Product.findOne({
+        name: product.name,
+        category: product.category,
+      });
+
+      if (!existingProduct) {
+        await Product.create(product);
+
+        addedProducts++;
+
+        console.log('✅ Product added:', product.name);
+      } else {
+        skippedProducts++;
+
+        console.log('⏭️ Product already exists:', product.name);
+      }
+    }
+
+    // Display final results
     console.log('\n🎉 Database seeded successfully!');
-    console.log('═══════════════════════════════════════');
-    console.log('📧 Admin Email:    ', adminEmail);
-    console.log('🔑 Admin Password: ', adminPassword);
-    console.log('═══════════════════════════════════════');
-    console.log('📧 Test Customer:  customer@example.com');
-    console.log('🔑 Customer Pass:  Customer@123');
-    console.log('═══════════════════════════════════════');
-    console.log('🎟️  Coupon Codes:  WELCOME10, SAVE500, NEWUSER20');
-    console.log('═══════════════════════════════════════\n');
+    console.log('=======================================');
+    console.log('📂 Categories:       ', categoryIds.length);
+    console.log('📦 Products added:   ', addedProducts);
+    console.log('⏭️ Products skipped: ', skippedProducts);
+    console.log('=======================================');
 
-    process.exit(0);
   } catch (error) {
     console.error('❌ Seed failed:', error.message);
-    process.exit(1);
+    process.exitCode = 1;
+
+  } finally {
+    await mongoose.disconnect();
+    console.log('🔌 MongoDB disconnected');
   }
 };
 
