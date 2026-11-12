@@ -6,25 +6,31 @@ const APIFeatures = require('../utils/apiFeatures');
 // @route   GET /api/products
 // @access  Public
 const getProducts = asyncHandler(async (req, res) => {
-  const totalProducts = await Product.countDocuments({ isActive: true });
-
+  // Apply search and filters
   const features = new APIFeatures(
-    Product.find({ isActive: true }).populate('category', 'name slug'),
+    Product.find({ isActive: true })
+      .populate('category', 'name slug'),
     req.query
   )
     .search()
-    .filter()
-    .sort()
-    .paginate(12);
+    .filter();
+
+  // Count matching products before pagination
+  const totalProducts = await Product.countDocuments(
+    features.query.getFilter()
+  );
+
+  // Apply sorting and pagination
+  features.sort().paginate(12);
 
   const products = await features.query;
 
-  res.json({
+  res.status(200).json({
     success: true,
     count: products.length,
     total: totalProducts,
-    page: features.currentPage || 1,
-    pages: Math.ceil(totalProducts / (features.limit || 12)),
+    page: features.currentPage,
+    pages: Math.ceil(totalProducts / features.limit),
     data: products,
   });
 });
@@ -34,7 +40,14 @@ const getProducts = asyncHandler(async (req, res) => {
 // @access  Public
 const getProduct = asyncHandler(async (req, res) => {
   const product = await Product.findOne({
-    $or: [{ _id: req.params.id.match(/^[0-9a-fA-F]{24}$/) ? req.params.id : null }, { slug: req.params.id }],
+    $or: [
+      {
+        _id: /^[0-9a-fA-F]{24}$/.test(req.params.id)
+          ? req.params.id
+          : null,
+      },
+      { slug: req.params.id },
+    ],
     isActive: true,
   }).populate('category', 'name slug');
 
@@ -43,7 +56,10 @@ const getProduct = asyncHandler(async (req, res) => {
     throw new Error('Product not found');
   }
 
-  res.json({ success: true, data: product });
+  res.json({
+    success: true,
+    data: product,
+  });
 });
 
 // @desc    Create product (admin)
@@ -102,10 +118,14 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new Error('Product not found');
   }
 
-  product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  }).populate('category', 'name slug');
+  product = await Product.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    {
+      new: true,
+      runValidators: true,
+    }
+  ).populate('category', 'name slug');
 
   res.json({
     success: true,
@@ -127,6 +147,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
   // Soft delete
   product.isActive = false;
+
   await product.save();
 
   res.json({
@@ -139,35 +160,53 @@ const deleteProduct = asyncHandler(async (req, res) => {
 // @route   GET /api/products/featured
 // @access  Public
 const getFeaturedProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({ isFeatured: true, isActive: true })
+  const products = await Product.find({
+    isFeatured: true,
+    isActive: true,
+  })
     .populate('category', 'name slug')
     .limit(8);
 
-  res.json({ success: true, data: products });
+  res.json({
+    success: true,
+    data: products,
+  });
 });
 
 // @desc    Get new arrivals
 // @route   GET /api/products/new-arrivals
 // @access  Public
 const getNewArrivals = asyncHandler(async (req, res) => {
-  const products = await Product.find({ isNewArrival: true, isActive: true })
+  const products = await Product.find({
+    isNewArrival: true,
+    isActive: true,
+  })
     .populate('category', 'name slug')
     .sort('-createdAt')
     .limit(8);
 
-  res.json({ success: true, data: products });
+  res.json({
+    success: true,
+    data: products,
+  });
 });
 
 // @desc    Get best sellers
 // @route   GET /api/products/best-sellers
 // @access  Public
 const getBestSellers = asyncHandler(async (req, res) => {
-  const products = await Product.find({ isBestSeller: true, isActive: true })
+  const products = await Product.find({
+    isBestSeller: true,
+    isActive: true,
+  })
     .populate('category', 'name slug')
     .sort('-soldCount')
     .limit(8);
 
-  res.json({ success: true, data: products });
+  res.json({
+    success: true,
+    data: products,
+  });
 });
 
 // @desc    Get related products
@@ -189,7 +228,10 @@ const getRelatedProducts = asyncHandler(async (req, res) => {
     .populate('category', 'name slug')
     .limit(4);
 
-  res.json({ success: true, data: relatedProducts });
+  res.json({
+    success: true,
+    data: relatedProducts,
+  });
 });
 
 // @desc    Upload product images
@@ -214,6 +256,7 @@ const uploadProductImages = asyncHandler(async (req, res) => {
   }));
 
   product.images.push(...images);
+
   await product.save();
 
   res.json({
