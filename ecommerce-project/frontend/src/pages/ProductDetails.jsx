@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -9,10 +9,11 @@ import {
   FiShoppingCart,
 } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
-import { productService } from '../services/api';
+import { productService, cartService } from '../services/api';
 
 function ProductDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,6 +21,8 @@ function ProductDetails() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [imageError, setImageError] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -31,11 +34,11 @@ function ProductDetails() {
       setSelectedImage(0);
       setImageError(false);
       setQuantity(1);
+      setCartMessage('');
 
       try {
         const response = await productService.getById(id);
         const result = response.data;
-
         const fetchedProduct = result?.data || result?.product;
 
         if (!fetchedProduct || !fetchedProduct._id) {
@@ -66,6 +69,37 @@ function ProductDetails() {
       active = false;
     };
   }, [id]);
+
+  const handleAddToCart = async () => {
+    if (!product || addingToCart || Number(product.stock) < quantity) {
+      return;
+    }
+
+    if (!localStorage.getItem('token')) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      setCartMessage('');
+
+      await cartService.add({
+        productId: product._id,
+        quantity,
+      });
+
+      navigate('/cart');
+    } catch (err) {
+      setCartMessage(
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to add product to cart.'
+      );
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -131,13 +165,23 @@ function ProductDetails() {
             Shopora.
           </Link>
 
-          <Link
-            to="/products"
-            className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-orange-600"
-          >
-            <FiArrowLeft />
-            Back to Products
-          </Link>
+          <div className="flex items-center gap-5">
+            <Link
+              to="/cart"
+              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-orange-600"
+            >
+              <FiShoppingCart />
+              Cart
+            </Link>
+
+            <Link
+              to="/products"
+              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-orange-600"
+            >
+              <FiArrowLeft />
+              Back to Products
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -275,8 +319,9 @@ function ProductDetails() {
                       Math.max(1, previous - 1)
                     )
                   }
-                  disabled={stock === 0 || quantity <= 1}
+                  disabled={stock === 0 || quantity <= 1 || addingToCart}
                   className="px-5 py-3 disabled:opacity-40"
+                  aria-label="Decrease quantity"
                 >
                   −
                 </button>
@@ -292,22 +337,38 @@ function ProductDetails() {
                       Math.min(stock, previous + 1)
                     )
                   }
-                  disabled={stock === 0 || quantity >= stock}
+                  disabled={stock === 0 || quantity >= stock || addingToCart}
                   className="px-5 py-3 disabled:opacity-40"
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
             </div>
 
+            {/* Cart Error Message */}
+            {cartMessage && (
+              <p
+                role="alert"
+                className="mt-5 rounded-xl bg-red-50 p-3 text-sm text-red-600"
+              >
+                {cartMessage}
+              </p>
+            )}
+
+            {/* Add to Cart Button */}
             <button
               type="button"
-              disabled
-              title="Cart functionality coming soon"
-              className="mt-7 flex w-full items-center justify-center gap-3 rounded-xl bg-orange-600 px-6 py-4 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleAddToCart}
+              disabled={stock === 0 || addingToCart}
+              className="mt-7 flex w-full items-center justify-center gap-3 rounded-xl bg-orange-600 px-6 py-4 font-bold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <FiShoppingCart />
-              Add to Cart — Coming Soon
+              {addingToCart
+                ? 'Adding to Cart...'
+                : stock === 0
+                  ? 'Out of Stock'
+                  : 'Add to Cart'}
             </button>
           </div>
         </div>
