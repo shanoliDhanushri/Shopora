@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiHeart, FiShoppingCart, FiImage } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
-import { cartService } from '../services/api';
+import { cartService, wishlistService } from '../services/api';
 
 function ProductCard({ product }) {
   const navigate = useNavigate();
@@ -11,6 +11,10 @@ function ProductCard({ product }) {
   const [imageError, setImageError] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [cartError, setCartError] = useState('');
+
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [wishlistError, setWishlistError] = useState('');
 
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
@@ -33,6 +37,69 @@ function ProductCard({ product }) {
 
   const productLink = `/products/${product._id}`;
 
+  // Check whether this product is already in the wishlist
+  useEffect(() => {
+    let active = true;
+
+    const checkWishlist = async () => {
+      if (!localStorage.getItem('token')) {
+        setIsWishlisted(false);
+        return;
+      }
+
+      try {
+        const response = await wishlistService.check(product._id);
+
+        if (active) {
+          setIsWishlisted(
+            Boolean(response.data?.data?.isWishlisted)
+          );
+        }
+      } catch (error) {
+        if (active) {
+          console.error('Wishlist check failed:', error);
+        }
+      }
+    };
+
+    checkWishlist();
+
+    return () => {
+      active = false;
+    };
+  }, [product._id]);
+
+  // Add or remove product from wishlist
+  const handleWishlist = async () => {
+    if (wishlistLoading) return;
+
+    if (!localStorage.getItem('token')) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setWishlistLoading(true);
+      setWishlistError('');
+
+      if (isWishlisted) {
+        await wishlistService.remove(product._id);
+        setIsWishlisted(false);
+      } else {
+        await wishlistService.add(product._id);
+        setIsWishlisted(true);
+      }
+    } catch (error) {
+      setWishlistError(
+        error.response?.data?.message ||
+        'Failed to update wishlist.'
+      );
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  // Add product to shopping cart
   const handleAddToCart = async () => {
     if (!inStock || addingToCart) return;
 
@@ -64,7 +131,7 @@ function ProductCard({ product }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-lg">
 
-      {/* Clickable Product Image */}
+      {/* Product Image */}
       <div className="relative aspect-square bg-gray-100">
         <Link
           to={productLink}
@@ -92,13 +159,30 @@ function ProductCard({ product }) {
           </span>
         )}
 
+        {/* Working Wishlist Button */}
         <button
           type="button"
-          disabled
-          title="Wishlist coming soon"
-          className="absolute right-3 top-3 rounded-full bg-white p-3 text-gray-500 shadow"
+          onClick={handleWishlist}
+          disabled={wishlistLoading}
+          aria-label={
+            isWishlisted
+              ? `Remove ${product.name} from wishlist`
+              : `Add ${product.name} to wishlist`
+          }
+          aria-pressed={isWishlisted}
+          title={
+            isWishlisted
+              ? 'Remove from Wishlist'
+              : 'Add to Wishlist'
+          }
+          className={`absolute right-3 top-3 rounded-full bg-white p-3 shadow transition hover:scale-110 disabled:cursor-wait disabled:opacity-60 ${
+            isWishlisted ? 'text-red-500' : 'text-gray-500'
+          }`}
         >
-          <FiHeart size={18} />
+          <FiHeart
+            size={18}
+            fill={isWishlisted ? 'currentColor' : 'none'}
+          />
         </button>
       </div>
 
@@ -109,7 +193,6 @@ function ProductCard({ product }) {
           {product.category?.name || 'Product'}
         </p>
 
-        {/* Clickable Product Name */}
         <Link
           to={productLink}
           className="mb-3 block min-h-12 font-semibold text-gray-900 transition hover:text-orange-600"
@@ -149,13 +232,19 @@ function ProductCard({ product }) {
           {inStock ? '● In Stock' : '● Out of Stock'}
         </p>
 
+        {wishlistError && (
+          <p role="alert" className="mb-3 text-sm text-red-600">
+            {wishlistError}
+          </p>
+        )}
+
         {cartError && (
           <p role="alert" className="mb-3 text-sm text-red-600">
             {cartError}
           </p>
         )}
 
-        {/* Working Add to Cart Button */}
+        {/* Add to Cart Button */}
         <button
           type="button"
           onClick={handleAddToCart}
@@ -163,6 +252,7 @@ function ProductCard({ product }) {
           className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <FiShoppingCart size={18} />
+
           {addingToCart
             ? 'Adding...'
             : inStock
