@@ -1,4 +1,6 @@
+
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FiHeart, FiShoppingCart, FiImage } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 
@@ -15,33 +17,44 @@ function ProductCard({ product }) {
     ? Math.round(((price - discountPrice) / price) * 100)
     : 0;
 
-  const image = product.images?.[0]?.url;
+  const firstImage = product.images?.[0];
+  const image =
+    typeof firstImage === 'string' ? firstImage : firstImage?.url;
+
   const inStock = Number(product.stock) > 0;
 
   const formatPrice = (value) =>
     `LKR ${value.toLocaleString('en-LK')}`;
 
+  const productLink = `/products/${product._id}`;
+
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-lg">
 
+      {/* Clickable Product Image */}
       <div className="relative aspect-square bg-gray-100">
-
-        {image && !imageError ? (
-          <img
-            src={image}
-            alt={product.name}
-            loading="lazy"
-            onError={() => setImageError(true)}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            <FiImage size={42} />
-          </div>
-        )}
+        <Link
+          to={productLink}
+          aria-label={`View details for ${product.name}`}
+          className="block h-full w-full"
+        >
+          {image && !imageError ? (
+            <img
+              src={image}
+              alt={product.name}
+              loading="lazy"
+              onError={() => setImageError(true)}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-gray-400">
+              <FiImage size={42} />
+            </div>
+          )}
+        </Link>
 
         {hasDiscount && (
-          <span className="absolute left-3 top-3 rounded-lg bg-orange-600 px-3 py-1 text-xs font-bold text-white">
+          <span className="pointer-events-none absolute left-3 top-3 rounded-lg bg-orange-600 px-3 py-1 text-xs font-bold text-white">
             -{discountPercent}%
           </span>
         )}
@@ -54,18 +67,22 @@ function ProductCard({ product }) {
         >
           <FiHeart size={18} />
         </button>
-
       </div>
 
+      {/* Product Information */}
       <div className="flex flex-1 flex-col p-4">
 
         <p className="mb-2 text-xs uppercase text-gray-400">
           {product.category?.name || 'Product'}
         </p>
 
-        <h3 className="mb-3 min-h-12 font-semibold text-gray-900">
+        {/* Clickable Product Name */}
+        <Link
+          to={productLink}
+          className="mb-3 block min-h-12 font-semibold text-gray-900 transition hover:text-orange-600"
+        >
           {product.name}
-        </h3>
+        </Link>
 
         <div className="mb-3 flex items-center gap-2">
           <FaStar className="text-yellow-400" />
@@ -91,9 +108,11 @@ function ProductCard({ product }) {
           )}
         </p>
 
-        <p className={`mb-4 text-xs ${
-          inStock ? 'text-green-600' : 'text-red-500'
-        }`}>
+        <p
+          className={`mb-4 text-xs ${
+            inStock ? 'text-green-600' : 'text-red-500'
+          }`}
+        >
           {inStock ? '● In Stock' : '● Out of Stock'}
         </p>
 
