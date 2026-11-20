@@ -1,11 +1,16 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiHeart, FiShoppingCart, FiImage } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
+import { cartService } from '../services/api';
 
 function ProductCard({ product }) {
+  const navigate = useNavigate();
+
   const [imageError, setImageError] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartError, setCartError] = useState('');
 
   const price = Number(product.price || 0);
   const discountPrice = Number(product.discountPrice || 0);
@@ -27,6 +32,34 @@ function ProductCard({ product }) {
     `LKR ${value.toLocaleString('en-LK')}`;
 
   const productLink = `/products/${product._id}`;
+
+  const handleAddToCart = async () => {
+    if (!inStock || addingToCart) return;
+
+    if (!localStorage.getItem('token')) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      setCartError('');
+
+      await cartService.add({
+        productId: product._id,
+        quantity: 1,
+      });
+
+      navigate('/cart');
+    } catch (err) {
+      setCartError(
+        err.response?.data?.message ||
+        'Failed to add product to cart.'
+      );
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-lg">
@@ -116,14 +149,25 @@ function ProductCard({ product }) {
           {inStock ? '● In Stock' : '● Out of Stock'}
         </p>
 
+        {cartError && (
+          <p role="alert" className="mb-3 text-sm text-red-600">
+            {cartError}
+          </p>
+        )}
+
+        {/* Working Add to Cart Button */}
         <button
           type="button"
-          disabled
-          title="Shopping cart coming soon"
-          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 font-semibold text-white opacity-60"
+          onClick={handleAddToCart}
+          disabled={!inStock || addingToCart}
+          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-3 font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <FiShoppingCart size={18} />
-          {inStock ? 'Add to Cart' : 'Out of Stock'}
+          {addingToCart
+            ? 'Adding...'
+            : inStock
+              ? 'Add to Cart'
+              : 'Out of Stock'}
         </button>
 
       </div>
