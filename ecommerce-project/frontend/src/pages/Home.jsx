@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import {
   FiSearch,
   FiUser,
@@ -16,9 +16,10 @@ import {
   FiRefreshCw,
   FiArrowRight,
   FiPackage,
-} from 'react-icons/fi'
+} from 'react-icons/fi';
 
-import { productService } from '../services/api'
+import { Link } from 'react-router-dom';
+import { productService } from '../services/api';
 
 const categories = [
   { name: 'Electronics', icon: FiSmartphone },
@@ -27,38 +28,37 @@ const categories = [
   { name: 'Home & Living', icon: FiHome },
   { name: 'Audio', icon: FiHeadphones },
   { name: 'Gifts', icon: FiGift },
-]
+];
 
 function Home() {
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [search, setSearch] = useState('')
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     async function loadProducts() {
       try {
-        const response = await productService.getAll()
-        setProducts(response.data.data || [])
+        const response = await productService.getAll();
+        setProducts(response.data.data || []);
       } catch {
-        setError('Unable to load products.')
+        setError('Unable to load products.');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    loadProducts()
-  }, [])
+    loadProducts();
+  }, []);
 
   const filteredProducts = products.filter((product) =>
     (product.name || '')
       .toLowerCase()
       .includes(search.toLowerCase())
-  )
+  );
 
   return (
     <div className="min-h-screen bg-white">
-
       {/* Announcement Bar */}
       <div className="bg-gray-900 px-4 py-2 text-center text-xs text-white sm:text-sm">
         Welcome to Shopora — Your Everyday Marketplace
@@ -66,18 +66,20 @@ function Home() {
 
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
-
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5">
-
-          <a href="/" className="text-3xl font-extrabold text-orange-600">
+          <Link
+            to="/"
+            className="text-3xl font-extrabold text-orange-600"
+          >
             Shopora.
-          </a>
+          </Link>
 
           <form
             onSubmit={(event) => {
-              event.preventDefault()
-              document.getElementById('products')
-                ?.scrollIntoView({ behavior: 'smooth' })
+              event.preventDefault();
+              document
+                .getElementById('products')
+                ?.scrollIntoView({ behavior: 'smooth' });
             }}
             className="order-last flex w-full items-center rounded-full bg-gray-100 px-5 py-3 md:order-none md:w-2/5"
           >
@@ -94,35 +96,33 @@ function Home() {
           </form>
 
           <div className="flex items-center gap-5 text-xl">
-            <button aria-label="Account" disabled>
+            <button type="button" aria-label="Account" disabled>
               <FiUser />
             </button>
 
-            <button aria-label="Wishlist" disabled>
+            <button type="button" aria-label="Wishlist" disabled>
               <FiHeart />
             </button>
 
-            <button aria-label="Shopping cart" disabled>
+            <button type="button" aria-label="Shopping cart" disabled>
               <FiShoppingCart />
             </button>
           </div>
-
         </div>
 
         {/* Navigation Menu */}
         <nav className="mx-auto flex max-w-7xl gap-7 overflow-x-auto whitespace-nowrap px-5 pb-4 text-sm font-medium">
-
-          <a href="/" className="text-orange-600">
+          <Link to="/" className="text-orange-600">
             Home
-          </a>
+          </Link>
 
           <a href="#categories" className="hover:text-orange-600">
             Categories
           </a>
 
-          <a href="#products" className="hover:text-orange-600">
+          <Link to="/products" className="hover:text-orange-600">
             Products
-          </a>
+          </Link>
 
           <a href="#offers" className="hover:text-orange-600">
             Offers
@@ -131,18 +131,13 @@ function Home() {
           <a href="#about" className="hover:text-orange-600">
             About Us
           </a>
-
         </nav>
-
       </header>
 
       <main>
-
         {/* Hero Section */}
         <section className="mx-auto max-w-7xl px-5 py-8">
-
           <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-orange-50 p-8 md:grid-cols-2 md:p-14">
-
             <div>
               <span className="rounded-full bg-orange-100 px-4 py-2 text-xs font-bold text-orange-700">
                 DISCOVER YOUR NEXT FAVOURITE
@@ -162,12 +157,12 @@ function Home() {
                 experience with Shopora.
               </p>
 
-              <a
-                href="#products"
+              <Link
+                to="/products"
                 className="mt-8 inline-flex items-center gap-3 rounded-full bg-orange-600 px-8 py-4 font-semibold text-white transition hover:bg-orange-700"
               >
                 Shop Now <FiArrowRight />
-              </a>
+              </Link>
             </div>
 
             <img
@@ -175,9 +170,7 @@ function Home() {
               alt="Featured headphones"
               className="h-72 w-full rounded-2xl object-cover md:h-96"
             />
-
           </div>
-
         </section>
 
         {/* Categories */}
@@ -185,7 +178,6 @@ function Home() {
           id="categories"
           className="mx-auto max-w-7xl scroll-mt-40 px-5 py-8"
         >
-
           <h2 className="text-2xl font-bold md:text-3xl">
             Shop by Category
           </h2>
@@ -195,7 +187,6 @@ function Home() {
           </p>
 
           <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-
             {categories.map(({ name, icon: Icon }) => (
               <div
                 key={name}
@@ -210,9 +201,7 @@ function Home() {
                 </span>
               </div>
             ))}
-
           </div>
-
         </section>
 
         {/* Offers */}
@@ -220,9 +209,7 @@ function Home() {
           id="offers"
           className="mx-auto max-w-7xl scroll-mt-40 px-5 py-8"
         >
-
           <div className="flex flex-wrap items-center justify-between gap-5 rounded-3xl bg-gray-900 p-8 text-white md:p-12">
-
             <div>
               <p className="text-sm font-semibold text-orange-400">
                 THE SHOPORA COLLECTION
@@ -237,15 +224,13 @@ function Home() {
               </p>
             </div>
 
-            <a
-              href="#products"
+            <Link
+              to="/products"
               className="rounded-full bg-orange-600 px-7 py-3 font-semibold hover:bg-orange-700"
             >
               Explore Products
-            </a>
-
+            </Link>
           </div>
-
         </section>
 
         {/* Featured Products */}
@@ -253,7 +238,6 @@ function Home() {
           id="products"
           className="mx-auto max-w-7xl scroll-mt-40 px-5 py-10"
         >
-
           <h2 className="text-2xl font-bold md:text-3xl">
             Featured Products
           </h2>
@@ -276,7 +260,6 @@ function Home() {
 
           {!loading && !error && filteredProducts.length === 0 && (
             <div className="mt-8 rounded-2xl bg-gray-50 p-12 text-center">
-
               <FiPackage className="mx-auto mb-4 text-5xl text-gray-400" />
 
               <h3 className="text-lg font-semibold">
@@ -290,91 +273,86 @@ function Home() {
                   ? 'Try a different search.'
                   : 'Stay tuned for our latest collection.'}
               </p>
-
             </div>
           )}
 
-          <div className="mt-8 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+          {!loading && !error && (
+            <div className="mt-8 grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4">
+              {filteredProducts.map((product) => {
+                const firstImage = product.images?.[0];
 
-            {filteredProducts.map((product) => {
-              const firstImage = product.images?.[0]
+                const image =
+                  typeof firstImage === 'string'
+                    ? firstImage
+                    : firstImage?.url || product.image;
 
-              const image =
-                typeof firstImage === 'string'
-                  ? firstImage
-                  : firstImage?.url || product.image
+                const price = Number(product.price || 0);
+                const discountPrice = Number(product.discountPrice || 0);
+                const sellingPrice =
+                  discountPrice > 0 && discountPrice < price
+                    ? discountPrice
+                    : price;
 
-              return (
-                <article
-                  key={product._id}
-                  className="overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:shadow-lg"
-                >
+                return (
+                  <article
+                    key={product._id}
+                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:shadow-lg"
+                  >
+                    <div className="flex h-52 items-center justify-center bg-gray-100">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={product.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <FiPackage className="text-4xl text-gray-400" />
+                      )}
+                    </div>
 
-                  <div className="flex h-52 items-center justify-center bg-gray-100">
+                    <div className="p-5">
+                      <h3 className="font-semibold">
+                        {product.name}
+                      </h3>
 
-                    {image ? (
-                      <img
-                        src={image}
-                        alt={product.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <FiPackage className="text-4xl text-gray-400" />
-                    )}
+                      <p className="mt-3 text-lg font-bold text-orange-600">
+                        LKR {sellingPrice.toLocaleString('en-LK')}
+                      </p>
 
-                  </div>
-
-                  <div className="p-5">
-
-                    <h3 className="font-semibold">
-                      {product.name}
-                    </h3>
-
-                    <p className="mt-3 text-lg font-bold text-orange-600">
-                      LKR {Number(product.price || 0).toLocaleString('en-LK')}
-                    </p>
-
-                    <button
-                      disabled
-                      className="mt-4 w-full rounded-lg bg-orange-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                    >
-                      Add to Cart
-                    </button>
-
-                  </div>
-
-                </article>
-              )
-            })}
-
-          </div>
-
+                      <button
+                        type="button"
+                        disabled
+                        className="mt-4 w-full rounded-lg bg-orange-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Shopping Benefits */}
         <section className="mx-auto grid max-w-7xl gap-5 px-5 py-10 md:grid-cols-3">
-
           {[
             { icon: FiTruck, title: 'Delivery Options' },
             { icon: FiShield, title: 'Secure Shopping' },
             { icon: FiRefreshCw, title: 'Customer Support' },
           ].map(({ icon: Icon, title }) => (
-
             <div
               key={title}
               className="flex items-center gap-4 rounded-xl border border-gray-200 p-6"
             >
               <Icon className="text-3xl text-orange-600" />
-
               <h3 className="font-semibold">
                 {title}
               </h3>
             </div>
-
           ))}
-
         </section>
-
       </main>
 
       {/* Footer */}
@@ -382,11 +360,8 @@ function Home() {
         id="about"
         className="mt-10 bg-gray-900 px-5 py-12 text-white"
       >
-
         <div className="mx-auto max-w-7xl">
-
           <div className="grid gap-10 md:grid-cols-3">
-
             <div>
               <h2 className="text-3xl font-extrabold text-orange-500">
                 Shopora.
@@ -401,9 +376,9 @@ function Home() {
               <h3 className="font-bold">Quick Links</h3>
 
               <div className="mt-4 flex flex-col gap-3 text-sm text-gray-400">
-                <a href="/">Home</a>
+                <Link to="/">Home</Link>
                 <a href="#categories">Categories</a>
-                <a href="#products">Products</a>
+                <Link to="/products">Products</Link>
                 <a href="#offers">Offers</a>
               </div>
             </div>
@@ -415,7 +390,6 @@ function Home() {
                 Discover a new way to shop online.
               </p>
             </div>
-
           </div>
 
           <hr className="my-8 border-gray-700" />
@@ -424,13 +398,10 @@ function Home() {
             © {new Date().getFullYear()} Shopora.
             All rights reserved.
           </p>
-
         </div>
-
       </footer>
-
     </div>
-  )
+  );
 }
 
-export default Home
+export default Home;
